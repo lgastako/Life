@@ -65,7 +65,6 @@ def renderLine (board : Board) (y : Int) : String :=
   String.join [renderCell board y x | for x in intRange maxX] ++ "\n"
 
 def renderBoard (board : Board) : String :=
-  -- for now assume the terminal is 80 x 25
   String.join [renderLine board y | for y in intRange maxY]
 
 def drawBoard := IO.println ∘ renderBoard
