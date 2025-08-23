@@ -24,7 +24,7 @@ def renderCell (board : Board) (y x : Int) : String :=
   | some false => off
   | none       => off
   where
-    on := "□"
+    on  := "□"
     off := " "
 
 def intRange (n : Int) : List Int :=
@@ -40,14 +40,14 @@ def drawBoard (maxY maxX : Int) (board : Board) : IO Unit :=
    IO.println (renderBoard maxY maxX board)
 
 def neighbors (maxY maxX x y : Int) : List Position :=
-  [ (x - 1, y - 1) --  ← ↑
-  , (x,     y - 1) --    ↑
-  , (x + 1, y - 1) --  → ↑
-  , (x - 1, y)     --  ←
-  , (x + 1, y)     --  →
-  , (x - 1, y + 1) --  ← ↓
-  , (x,     y + 1) --    ↓
-  , (x + 1, y + 1) --  → ↓
+  [ (x - 1, y - 1)  --  ← ↑
+  , (x,     y - 1)  --    ↑
+  , (x + 1, y - 1)  --  → ↑
+  , (x - 1, y)      --  ←
+  , (x + 1, y)      --  →
+  , (x - 1, y + 1)  --  ← ↓
+  , (x,     y + 1)  --    ↓
+  , (x + 1, y + 1)  --  → ↓
   ].map (λ (a, b) => (wrap a maxX, wrap b maxY))
 
 def neighborCount (maxY maxX : Int) (board : Board) (x y : Int) : Int :=
