@@ -20,12 +20,12 @@ def clearScreen : IO Unit :=
 
 def renderCell (board : Board) (y x : Int) : String :=
   match board[(x, y)]? with
-  | some true  => white
-  | some false => black
-  | none       => black
+  | some true  => on
+  | some false => off
+  | none       => off
   where
-    white := "□"
-    black := " "
+    on := "□"
+    off := " "
 
 def intRange (n : Int) : List Int :=
   (List.range ∘ Int.toNat $ n).map Int.ofNat
@@ -40,17 +40,15 @@ def drawBoard (maxY maxX : Int) (board : Board) : IO Unit :=
    IO.println (renderBoard maxY maxX board)
 
 def neighbors (maxY maxX x y : Int) : List Position :=
-  let raw : List Position :=
-    [ (x - 1, y - 1) -- up, left
-    , (x,     y - 1) -- up
-    , (x + 1, y - 1) -- up, right
-    , (x - 1, y)     -- same, left
-    , (x + 1, y)     -- same, right
-    , (x - 1, y + 1) -- down, left
-    , (x,     y + 1) -- down
-    , (x + 1, y + 1) -- down right
-    ]
-  raw.map (λ (a, b) => (wrap a maxX, wrap b maxY))
+  [ (x - 1, y - 1) --  ← ↑
+  , (x,     y - 1) --    ↑
+  , (x + 1, y - 1) --  → ↑
+  , (x - 1, y)     --  ←
+  , (x + 1, y)     --  →
+  , (x - 1, y + 1) --  ← ↓
+  , (x,     y + 1) --    ↓
+  , (x + 1, y + 1) --  → ↓
+  ].map (λ (a, b) => (wrap a maxX, wrap b maxY))
 
 def neighborCount (maxY maxX : Int) (board : Board) (x y : Int) : Int :=
   List.length ∘ List.filter id $
@@ -76,17 +74,16 @@ def step (maxY maxX : Int) (board : Board) : Board := HashMap.ofList newVals
       , for y in intRange maxY
       ]
 
-partial def go (maxY maxX : Int) (board : Board) : IO Unit := do
-  let delay : UInt32 := 25
+partial def go (delay : UInt32) (maxY maxX : Int) (board : Board) : IO Unit := do
   clearScreen
   drawBoard maxY maxX board
   IO.sleep delay
-  go maxY maxX (step maxY maxX board)
+  go delay maxY maxX (step maxY maxX board)
 
 def main := do
-  let pattern := rPentomino
-  let board : Board := (HashMap.ofList ∘ truify) pattern
   let (maxY, maxX) ← getTerminalSize
-  go maxY maxX board
+  let board : Board := (HashMap.ofList ∘ List.map (λ x => (x, true))) pattern
+  go delay maxY maxX board
   where
-    truify := List.map (λ x => (x, true))
+    pattern := rPentomino
+    delay   := 25
