@@ -51,8 +51,13 @@ def neighbors (maxY maxX x y : Int) : List Position :=
   ].map (λ (a, b) => (wrap a maxX, wrap b maxY))
 
 def neighborCount (maxY maxX : Int) (board : Board) (x y : Int) : Int :=
-  List.length ∘ List.filter id $
-    (neighbors maxY maxX x y).map (λ (p : Position) => (board[p]?).getD false)
+  (neighbors maxY maxX x y).foldl
+    (λ acc p => acc + cond ((board[p]?).getD false) 1 0)
+    0
+
+-- def neighborCount (maxY maxX : Int) (board : Board) (x y : Int) : Int :=
+--   List.length ∘ List.filter id $
+--     (neighbors maxY maxX x y).map (λ (p : Position) => (board[p]?).getD false)
 
 /--
 Any live cell with fewer than two live neighbours dies, as if by underpopulation.
@@ -60,16 +65,18 @@ Any live cell with two or three live neighbours lives on to the next generation.
 Any live cell with more than three live neighbours dies, as if by overpopulation.
 Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 -/
-def nextVal (maxY maxX : Int) (board : Board) (x y : Int) : Bool :=
-  match neighborCount maxY maxX board x y with
-  | 2 => (board[(x, y)]?).getD False
-  | 3 => True
-  | _ => False
+def rule (maxY maxX : Int) (board : Board) (x y : Int) : Bool :=
+  let n := neighborCount maxY maxX board x y
+  let alive := (board[(x, y)]?).getD false
+  (n == 3) || ((n == 2) && alive)
 
 def step (maxY maxX : Int) (board : Board) : Board := HashMap.ofList newVals
   where
+    evolve : Int → Int → Bool := rule maxY maxX board
     newVals : List (Position × Value) :=
-      [ ((x, y), nextVal maxY maxX board x y)
+      [ ( (x, y)
+        , evolve x y
+        )
       | for x in intRange maxX
       , for y in intRange maxY
       ]
