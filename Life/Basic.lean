@@ -30,16 +30,16 @@ def renderCell (board : Board) (y x : Int) : String :=
 def intRange (n : Int) : List Int :=
   (List.range ∘ Int.toNat $ n).map Int.ofNat
 
-def renderLine (maxX : Int) (board : Board) (y : Int) : String :=
-  String.join [renderCell board y x | for x in intRange maxX] ++ "\n"
+def renderLine (width : Int) (board : Board) (y : Int) : String :=
+  String.join [renderCell board y x | for x in intRange width] ++ "\n"
 
-def renderBoard (maxY maxX : Int) (board : Board) : String :=
-  String.join [renderLine maxX board y | for y in intRange maxY]
+def renderBoard (height width : Int) (board : Board) : String :=
+  String.join [renderLine width board y | for y in intRange height]
 
-def drawBoard (maxY maxX : Int) (board : Board) : IO Unit :=
-   IO.println (renderBoard maxY maxX board)
+def drawBoard (height width : Int) (board : Board) : IO Unit :=
+   IO.println (renderBoard height width board)
 
-def neighbors (maxY maxX x y : Int) : List Position :=
+def neighbors (height width x y : Int) : List Position :=
   [ (x - 1, y - 1)  --  ← ↑
   , (x,     y - 1)  --    ↑
   , (x + 1, y - 1)  --  → ↑
@@ -48,10 +48,10 @@ def neighbors (maxY maxX x y : Int) : List Position :=
   , (x - 1, y + 1)  --  ← ↓
   , (x,     y + 1)  --    ↓
   , (x + 1, y + 1)  --  → ↓
-  ].map (λ (a, b) => (wrap a maxX, wrap b maxY))
+  ].map (λ (a, b) => (wrap a width, wrap b height))
 
-def neighborCount (maxY maxX : Int) (board : Board) (x y : Int) : Int :=
-  (neighbors maxY maxX x y).foldl
+def neighborCount (height width : Int) (board : Board) (x y : Int) : Int :=
+  (neighbors height width x y).foldl
     (λ acc p => acc + cond ((board[p]?).getD false) 1 0)
     0
 
@@ -61,32 +61,32 @@ Any live cell with two or three live neighbours lives on to the next generation.
 Any live cell with more than three live neighbours dies, as if by overpopulation.
 Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 -/
-def rule (maxY maxX : Int) (board : Board) (x y : Int) : Bool :=
-  let n := neighborCount maxY maxX board x y
+def rule (height width : Int) (board : Board) (x y : Int) : Bool :=
+  let n := neighborCount height width board x y
   let alive := (board[(x, y)]?).getD false
   (n == 3) || ((n == 2) && alive)
 
-def step (maxY maxX : Int) (board : Board) : Board := HashMap.ofList newVals
+def step (height width : Int) (board : Board) : Board := HashMap.ofList newVals
   where
-    evolve : Int → Int → Bool := rule maxY maxX board
+    evolve : Int → Int → Bool := rule height width board
     newVals : List (Position × Value) :=
       [ ( (x, y)
         , evolve x y
         )
-      | for x in intRange maxX
-      , for y in intRange maxY
+      | for x in intRange width
+      , for y in intRange height
       ]
 
-partial def go (delay : UInt32) (maxY maxX : Int) (board : Board) : IO Unit := do
+partial def go (delay : UInt32) (height width : Int) (board : Board) : IO Unit := do
   clearScreen
-  drawBoard maxY maxX board
+  drawBoard height width board
   IO.sleep delay
-  go delay maxY maxX (step maxY maxX board)
+  go delay height width (step height width board)
 
 def main := do
-  let (maxY, maxX) ← getTerminalSize
+  let (height, width) ← getTerminalSize
   let board : Board := (HashMap.ofList ∘ List.map (λ x => (x, true))) pattern
-  go delay maxY maxX board
+  go delay height width board
   where
     pattern := rPentomino
     delay   := 25
