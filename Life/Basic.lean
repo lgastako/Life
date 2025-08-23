@@ -55,6 +55,11 @@ def neighbors (x : Nat) (y : Nat) : List Position :=
   , (x + 1, y + 1) -- down right
   ]
 
+#eval neighbors 2 3
+
+#eval neighbors 0 0
+
+
 def neighborCount (board : Board) (x : Nat) (y : Nat) : Nat :=
   List.length ∘ List.filter id $
     (neighbors x y).map (λ (p : Position) => (board[p]?).getD false)
