@@ -3,16 +3,13 @@
 import Std.Data.HashMap
 
 import Life.ListComp
+import Life.Term
 
 open Std
 
 abbrev Position := Int × Int
 abbrev Value := Bool
 abbrev Board := HashMap Position Value
-
--- for now assume the terminal is 80 x 25
-def maxY := 25
-def maxX := 80
 
 def clearScreen : IO Unit :=
   IO.print "\u001b[2J\u001b[H"
@@ -58,18 +55,19 @@ def renderCell (board : Board) (y x : Int) : String :=
      | some false => " "
      | none       => " "
 
-def intRange (n : Nat) : List Int :=
-  (List.range n).map Int.ofNat
+def intRange (n : Int) : List Int :=
+  (List.range ∘ Int.toNat $ n).map Int.ofNat
 
-def renderLine (board : Board) (y : Int) : String :=
+def renderLine (maxX : Int) (board : Board) (y : Int) : String :=
   String.join [renderCell board y x | for x in intRange maxX] ++ "\n"
 
-def renderBoard (board : Board) : String :=
-  String.join [renderLine board y | for y in intRange maxY]
+def renderBoard (maxY maxX : Int) (board : Board) : String :=
+  String.join [renderLine maxX board y | for y in intRange maxY]
 
-def drawBoard := IO.println ∘ renderBoard
+def drawBoard (maxY maxX : Int) (board : Board) : IO Unit :=
+   IO.println (renderBoard maxY maxX board)
 
-def neighbors (x y : Int) : List Position :=
+def neighbors (maxY maxX x y : Int) : List Position :=
   let raw : List Position :=
     [ (x - 1, y - 1) -- up, left
     , (x,     y - 1) -- up
@@ -82,9 +80,20 @@ def neighbors (x y : Int) : List Position :=
     ]
   raw.map (λ (a, b) => (wrap a maxX, wrap b maxY))
 
-def neighborCount (board : Board) (x y : Int) : Int :=
+def neighborCount (maxY maxX : Int) (board : Board) (x y : Int) : Int :=
   List.length ∘ List.filter id $
-    (neighbors x y).map (λ (p : Position) => (board[p]?).getD false)
+    (neighbors maxY maxX x y).map (λ (p : Position) => (board[p]?).getD false)
+
+-- -- replace your neighborCount with this
+-- @[inline] def neighborCount (maxY maxX : Int) (board : Board) (x y : Int) : Int :=
+--   let offs : List (Int × Int) :=
+--     [(-1,-1),(0,-1),(1,-1),(-1,0),(1,0),(-1,1),(0,1),(1,1)]
+--   offs.foldl (init := 0) (fun acc (dx, dy) =>
+--     let nx := wrap (x + dx) maxX
+--     let ny := wrap (y + dy) maxY
+--     let alive := (board[(nx, ny)]?).getD false
+--     acc + (if alive then 1 else 0))
+
 
 /--
 Any live cell with fewer than two live neighbours dies, as if by underpopulation.
@@ -92,32 +101,33 @@ Any live cell with two or three live neighbours lives on to the next generation.
 Any live cell with more than three live neighbours dies, as if by overpopulation.
 Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 -/
-def nextVal (board : Board) (x y : Int) : Bool :=
-  match neighborCount board x y with
+def nextVal (maxY maxX : Int) (board : Board) (x y : Int) : Bool :=
+  match neighborCount maxY maxX board x y with
   | 0 => false
   | 1 => false
   | 2 => (board[(x, y)]?).getD False
   | 3 => True
   | _ => False
 
-def step (board : Board) : Board := HashMap.ofList newVals
+def step (maxY maxX : Int) (board : Board) : Board := HashMap.ofList newVals
   where
     newVals : List (Position × Value) :=
-      [ ((x, y), nextVal board x y)
+      [ ((x, y), nextVal maxY maxX board x y)
       | for x in intRange maxX
       , for y in intRange maxY
       ]
 
-partial def go (board : Board) : IO Unit := do
+partial def go (maxY maxX : Int) (board : Board) : IO Unit := do
+  let delay : UInt32 := 75
   clearScreen
-  drawBoard board
-  IO.sleep (30 : UInt32)
-  go (step board)
+  drawBoard maxY maxX board
+  IO.sleep delay
+  go maxY maxX (step maxY maxX board)
 
 def main := do
   let pattern := glider
   let board : Board := (HashMap.ofList ∘ truify) pattern
-  go board
+  let (maxY, maxX) ← getTerminalSize
+  go maxY maxX board
   where
-    truify : List (Int × Int) -> List ((Int × Int) × Bool) :=
-      List.map (λ x => (x, true))
+    truify := List.map (λ x => (x, true))
