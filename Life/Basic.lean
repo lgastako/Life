@@ -91,5 +91,5 @@ def main := do
   let board : Board := boardFromPattern pattern
   go delay height width board
   where
-    pattern := rPentomino
+    pattern := queenBeeShuttle
     delay   := 25
