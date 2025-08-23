@@ -77,6 +77,9 @@ def step (height width : Int) (board : Board) : Board := HashMap.ofList newVals
       , for y in intRange height
       ]
 
+def boardFromPattern : List (Int × Int) -> Board :=
+  HashMap.ofList ∘ List.map (λ x => (x, true))
+
 partial def go (delay : UInt32) (height width : Int) (board : Board) : IO Unit := do
   clearScreen
   drawBoard height width board
@@ -85,7 +88,7 @@ partial def go (delay : UInt32) (height width : Int) (board : Board) : IO Unit :
 
 def main := do
   let (height, width) ← getTerminalSize
-  let board : Board := (HashMap.ofList ∘ List.map (λ x => (x, true))) pattern
+  let board : Board := boardFromPattern pattern
   go delay height width board
   where
     pattern := rPentomino
