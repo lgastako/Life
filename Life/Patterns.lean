@@ -1,7 +1,7 @@
 def shift (delta : Int × Int)
           (pat : List (Int × Int))
           : List (Int × Int) :=
-  pat.map (λ (x, y) => (x + delta.1, y + delta.2))
+  pat.map (λ (x, y) => (x + delta.fst, y + delta.snd))
 
 def glider : List (Int × Int) :=
   [ (0, 1)
