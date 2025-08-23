@@ -55,10 +55,6 @@ def neighborCount (maxY maxX : Int) (board : Board) (x y : Int) : Int :=
     (λ acc p => acc + cond ((board[p]?).getD false) 1 0)
     0
 
--- def neighborCount (maxY maxX : Int) (board : Board) (x y : Int) : Int :=
---   List.length ∘ List.filter id $
---     (neighbors maxY maxX x y).map (λ (p : Position) => (board[p]?).getD false)
-
 /--
 Any live cell with fewer than two live neighbours dies, as if by underpopulation.
 Any live cell with two or three live neighbours lives on to the next generation.
