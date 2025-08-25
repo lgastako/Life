@@ -78,7 +78,11 @@ def step (height width : Int) (board : Board) : Board := HashMap.ofList newVals
 def boardFromPattern : Pattern -> Board :=
   HashMap.ofList ∘ List.map (λ x => (x, true))
 
-partial def go (delay : UInt32) (height width : Int) (board : Board) (onChar offChar : String) : IO Unit := do
+partial def go (delay : UInt32)
+               (height width : Int)
+               (board : Board)
+               (onChar offChar : String)
+               : IO Unit := do
   clearScreen
   drawBoard height width board onChar offChar
   IO.sleep delay
