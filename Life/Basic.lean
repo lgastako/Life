@@ -18,26 +18,23 @@ def clearScreen : IO Unit :=
 @[inline] def wrap (a max : Int) : Int :=
   ((a % max) + max) % max
 
-def renderCell (board : Board) (y x : Int) : String :=
+def renderCell (board : Board) (onChar offChar : String) (y x : Int) : String :=
   match board[(x, y)]? with
-  | some true  => on
-  | some false => off
-  | none       => off
-  where
-    on  := "□"
-    off := " "
+  | some true  => onChar
+  | some false => offChar
+  | none       => offChar
 
 def intRange (n : Int) : List Int :=
   (List.range ∘ Int.toNat $ n).map Int.ofNat
 
-def renderLine (width : Int) (board : Board) (y : Int) : String :=
-  String.join [renderCell board y x | for x in intRange width] ++ "\n"
+def renderLine (width : Int) (board : Board) (onChar offChar : String) (y : Int) : String :=
+  String.join [renderCell board onChar offChar y x | for x in intRange width] ++ "\n"
 
-def renderBoard (height width : Int) (board : Board) : String :=
-  String.join [renderLine width board y | for y in intRange height]
+def renderBoard (height width : Int) (board : Board) (onChar offChar : String) : String :=
+  String.join [renderLine width board onChar offChar y | for y in intRange height]
 
-def drawBoard (height width : Int) (board : Board) : IO Unit :=
-   IO.println (renderBoard height width board)
+def drawBoard (height width : Int) (board : Board) (onChar offChar : String) : IO Unit :=
+   IO.println (renderBoard height width board onChar offChar)
 
 def neighbors (height width x y : Int) : List Position :=
   [ (x - 1, y - 1)  --  ← ↑
@@ -80,11 +77,11 @@ def step (height width : Int) (board : Board) : Board := HashMap.ofList newVals
 def boardFromPattern : List (Int × Int) -> Board :=
   HashMap.ofList ∘ List.map (λ x => (x, true))
 
-partial def go (delay : UInt32) (height width : Int) (board : Board) : IO Unit := do
+partial def go (delay : UInt32) (height width : Int) (board : Board) (onChar offChar : String) : IO Unit := do
   clearScreen
-  drawBoard height width board
+  drawBoard height width board onChar offChar
   IO.sleep delay
-  go delay height width (step height width board)
+  go delay height width (step height width board) onChar offChar
 
 def getPatternByName (name : String) : Option (List (Int × Int)) :=
   match name with
@@ -101,11 +98,58 @@ def getPatternByName (name : String) : Option (List (Int × Int)) :=
   | "queenBeeShuttle" => some queenBeeShuttle
   | _ => none
 
+structure Config where
+  pattern : String := "rPentomino"
+  delay : UInt32 := 25
+  onChar : String := "□"
+  offChar : String := " "
+
+def printHelp : IO Unit := do
+  IO.println "Conway's Game of Life"
+  IO.println ""
+  IO.println "Usage: Life [OPTIONS]"
+  IO.println ""
+  IO.println "Options:"
+  IO.println "  --help              Show this help message and exit"
+  IO.println "  --pattern PATTERN   Set the initial pattern (default: rPentomino)"
+  IO.println "  --delay MILLISECS   Set delay between generations in milliseconds (default: 25)"
+  IO.println "  --on CHAR           Character for live cells (default: □)"
+  IO.println "  --off CHAR          Character for dead cells (default: space)"
+  IO.println ""
+  IO.println "Available patterns:"
+  IO.println "  glider, blinker, toad, beacon, diehard, acorn, rPentomino,"
+  IO.println "  pulsar, gosperGliderGun, pentadecathlonSeed, queenBeeShuttle"
+
+partial def parseArgs (args : List String) (config : Config) : IO (Option Config) :=
+  match args with
+  | [] => pure (some config)
+  | "--help" :: _ => do printHelp; pure none
+  | "--pattern" :: pattern :: rest => 
+    if getPatternByName pattern |>.isSome then
+      parseArgs rest { config with pattern := pattern }
+    else do
+      IO.println s!"Error: Unknown pattern '{pattern}'"
+      printHelp
+      pure none
+  | "--delay" :: delayStr :: rest =>
+    match delayStr.toNat? with
+    | some delay => parseArgs rest { config with delay := UInt32.ofNat delay }
+    | none => do
+      IO.println s!"Error: Invalid delay value '{delayStr}'"
+      printHelp
+      pure none
+  | "--on" :: char :: rest => parseArgs rest { config with onChar := char }
+  | "--off" :: char :: rest => parseArgs rest { config with offChar := char }
+  | unknown :: _ => do
+    IO.println s!"Error: Unknown option '{unknown}'"
+    printHelp
+    pure none
+
 def main (args : List String) := do
-  let patternName := args[0]? |>.getD "rPentomino"
-  let pattern := getPatternByName patternName |>.getD rPentomino
-  let (height, width) ← getTerminalSize
-  let board : Board := boardFromPattern pattern
-  go delay height width board
-  where
-    delay := 25
+  match ← parseArgs args {} with
+  | none => pure ()
+  | some config => do
+    let pattern := getPatternByName config.pattern |>.getD rPentomino
+    let (height, width) ← getTerminalSize
+    let board : Board := boardFromPattern pattern
+    go config.delay height width board config.onChar config.offChar
