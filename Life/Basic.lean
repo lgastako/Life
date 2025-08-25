@@ -86,10 +86,26 @@ partial def go (delay : UInt32) (height width : Int) (board : Board) : IO Unit :
   IO.sleep delay
   go delay height width (step height width board)
 
-def main := do
+def getPatternByName (name : String) : Option (List (Int × Int)) :=
+  match name with
+  | "glider" => some glider
+  | "blinker" => some blinker
+  | "toad" => some toad
+  | "beacon" => some beacon
+  | "diehard" => some diehard
+  | "acorn" => some acorn
+  | "rPentomino" => some rPentomino
+  | "pulsar" => some pulsar
+  | "gosperGliderGun" => some gosperGliderGun
+  | "pentadecathlonSeed" => some pentadecathlonSeed
+  | "queenBeeShuttle" => some queenBeeShuttle
+  | _ => none
+
+def main (args : List String) := do
+  let patternName := args[0]? |>.getD "rPentomino"
+  let pattern := getPatternByName patternName |>.getD rPentomino
   let (height, width) ← getTerminalSize
   let board : Board := boardFromPattern pattern
   go delay height width board
   where
-    pattern := queenBeeShuttle
-    delay   := 25
+    delay := 25
