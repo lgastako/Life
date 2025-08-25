@@ -1,5 +1,8 @@
 def Pattern := List (Int × Int)
 
+instance : Inhabited Pattern where
+  default := []
+
 def shift (delta : Int × Int)
           (pat : Pattern)
           : Pattern :=

@@ -88,7 +88,7 @@ partial def go (delay : UInt32)
   IO.sleep delay
   go delay height width (step height width board) onChar offChar
 
-def getPatternByName (name : String) : Option (Pattern) :=
+def getPatternByName? (name : String) : Option (Pattern) :=
   match name with
   | "glider" => some glider
   | "blinker" => some blinker
@@ -103,8 +103,11 @@ def getPatternByName (name : String) : Option (Pattern) :=
   | "queenBeeShuttle" => some queenBeeShuttle
   | _ => none
 
+def getPatternByName (name : String) (randPattern : Pattern) : Pattern :=
+   getPatternByName? name |>.getD randPattern
+
 structure Config where
-  pattern : String := "rPentomino"
+  pattern : Pattern := rPentomino
   delay : UInt32 := 25
   onChar : String := "□"
   offChar : String := " "
@@ -143,19 +146,19 @@ partial def parseArgs (args : List String) (config : Config) : IO (Option Config
   -- let randOn ← randomUnicode
   let randOn ← randomUnicode
   let randOff ←  randomUnicode
---   let randPattern <- randomPattern
+  let randPattern <- randomPattern
 
   match args with
   | [] => pure (some config)
   | "--help" :: _ => do printHelp; pure none
   | "--pattern" :: pattern :: rest =>
-    if getPatternByName pattern |>.isSome then
-      parseArgs rest { config with pattern := pattern }
+    if (getPatternByName? pattern |>.isSome) || pattern = "random" then
+      parseArgs rest { config with pattern := getPatternByName pattern randPattern }
     else do
       IO.println s!"Error: Unknown pattern '{pattern}'"
       printHelp
       pure none
---   | "--rand-pattern" :: rest => parseArgs rest { config with pattern := randPattern }
+  | "--random-pattern" :: rest => parseArgs rest { config with pattern := randPattern }
   | "--delay" :: delayStr :: rest =>
     match delayStr.toNat? with
     | some delay => parseArgs rest { config with delay := UInt32.ofNat delay }
@@ -180,7 +183,6 @@ def main (args : List String) := do
   match ← parseArgs args {} with
   | none => pure ()
   | some config => do
-    let pattern := getPatternByName config.pattern |>.getD rPentomino
     let (height, width) ← getTerminalSize
-    let board : Board := boardFromPattern pattern
+    let board : Board := boardFromPattern config.pattern
     go config.delay height width board config.onChar config.offChar
