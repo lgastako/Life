@@ -78,6 +78,20 @@ def step (height width : Int) (board : Board) : Board := HashMap.ofList newVals
 def boardFromPattern : Pattern -> Board :=
   HashMap.ofList ∘ List.map (λ x => (x, true))
 
+def applyOffset (xOffset yOffset : Int) (pattern : Pattern) :=
+  pattern.map (λ (x, y) => (x + xOffset, y + yOffset))
+
+structure Config where
+  pattern : Pattern := rPentomino
+  delay : UInt32 := 25
+  onChar : String := "□"
+  offChar : String := " "
+  xOffset : Int
+  yOffset : Int
+
+def boardFromConfig (config : Config) : Board :=
+  boardFromPattern $ applyOffset config.xOffset config.yOffset config.pattern
+
 partial def go (delay : UInt32)
                (height width : Int)
                (board : Board)
@@ -106,12 +120,6 @@ def getPatternByName? (name : String) : Option (Pattern) :=
 def getPatternByName (name : String) (randPattern : Pattern) : Pattern :=
    getPatternByName? name |>.getD randPattern
 
-structure Config where
-  pattern : Pattern := rPentomino
-  delay : UInt32 := 25
-  onChar : String := "□"
-  offChar : String := " "
-
 def printHelp : IO Unit := do
   IO.println "Conway's Game of Life"
   IO.println ""
@@ -139,6 +147,11 @@ def randomChoice {α : Type} [Inhabited α] (xs : List α) : IO α := do
 def randomUnicode : IO Char := randomChoice funCharacters
 
 def randomPattern [Inhabited Pattern] :  IO Pattern := randomChoice allPatterns
+
+def abortParse {α : Type} (msg val : String) : IO (Option α) := do
+  IO.println s!"Error: {msg}: '{val}'"
+  printHelp
+  pure none
 
 partial def parseArgs (args : List String) (config : Config) : IO (Option Config) := do
   -- Generating these whether they are needed or not is a hack for now to get the
@@ -173,16 +186,29 @@ partial def parseArgs (args : List String) (config : Config) : IO (Option Config
   | "--rand-both" :: rest => parseArgs rest { config with
       onChar := randOn.toString
       offChar := randOff.toString
-   }
+  }
+  | "--x" :: xStr :: rest =>
+     match xStr.toInt? with
+     | some x => parseArgs rest { config with xOffset := x }
+     | none => abortParse "invalid x offset" xStr
+  | "--y" :: yStr :: rest =>
+     match yStr.toInt? with
+     | some y => parseArgs rest { config with yOffset := y }
+     | none => abortParse "invalid y offset" yStr
   | unknown :: _ => do
     IO.println s!"Error: Unknown option '{unknown}'"
     printHelp
     pure none
 
 def main (args : List String) := do
-  match ← parseArgs args {} with
+-- TODO why do I have to include xOffset and yOffset here when I didn't
+-- have to do that for any other fields/args?
+  match ← parseArgs args { xOffset := 0, yOffset := 0 } with
   | none => pure ()
   | some config => do
-    let (height, width) ← getTerminalSize
-    let board : Board := boardFromPattern config.pattern
+    let (height, width) ← subtractMargin (1, 1) <$> getTerminalSize
+    let board : Board := boardFromConfig config
     go config.delay height width board config.onChar config.offChar
+  where
+    -- subtractMargin := λ (a b : Nat × Nat) => (a.fst - b.fst, a.snd - b.snd)
+    subtractMargin := λ (_a b : Nat × Nat) => b
