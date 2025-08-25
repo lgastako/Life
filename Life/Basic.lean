@@ -5,6 +5,7 @@ import Std.Data.HashMap
 import Life.ListComp
 import Life.Patterns
 import Life.Term
+import Life.Unicode
 
 open Std
 
@@ -74,7 +75,7 @@ def step (height width : Int) (board : Board) : Board := HashMap.ofList newVals
       , for y in intRange height
       ]
 
-def boardFromPattern : List (Int × Int) -> Board :=
+def boardFromPattern : Pattern -> Board :=
   HashMap.ofList ∘ List.map (λ x => (x, true))
 
 partial def go (delay : UInt32) (height width : Int) (board : Board) (onChar offChar : String) : IO Unit := do
@@ -83,7 +84,7 @@ partial def go (delay : UInt32) (height width : Int) (board : Board) (onChar off
   IO.sleep delay
   go delay height width (step height width board) onChar offChar
 
-def getPatternByName (name : String) : Option (List (Int × Int)) :=
+def getPatternByName (name : String) : Option (Pattern) :=
   match name with
   | "glider" => some glider
   | "blinker" => some blinker
@@ -115,22 +116,42 @@ def printHelp : IO Unit := do
   IO.println "  --delay MILLISECS   Set delay between generations in milliseconds (default: 25)"
   IO.println "  --on CHAR           Character for live cells (default: □)"
   IO.println "  --off CHAR          Character for dead cells (default: space)"
+  IO.println "  --rand-on           Select a random fun unicode character for the on char"
+  IO.println "  --rand-off          Select a random fun unicode character for the off char"
+  IO.println "  --rand-both         Select a random fun unicode character for each of the on and off chars"
   IO.println ""
   IO.println "Available patterns:"
   IO.println "  glider, blinker, toad, beacon, diehard, acorn, rPentomino,"
   IO.println "  pulsar, gosperGliderGun, pentadecathlonSeed, queenBeeShuttle"
 
-partial def parseArgs (args : List String) (config : Config) : IO (Option Config) :=
+
+def randomChoice {α : Type} [Inhabited α] (xs : List α) : IO α := do
+  let i ← IO.rand 0 (xs.length - 1)
+  pure (xs[i]!)
+
+def randomUnicode : IO Char := randomChoice funCharacters
+
+def randomPattern [Inhabited Pattern] :  IO Pattern := randomChoice allPatterns
+
+partial def parseArgs (args : List String) (config : Config) : IO (Option Config) := do
+  -- Generating these whether they are needed or not is a hack for now to get the
+  -- random unicode stuff working, but should be refactored.
+  -- let randOn ← randomUnicode
+  let randOn ← randomUnicode
+  let randOff ←  randomUnicode
+--   let randPattern <- randomPattern
+
   match args with
   | [] => pure (some config)
   | "--help" :: _ => do printHelp; pure none
-  | "--pattern" :: pattern :: rest => 
+  | "--pattern" :: pattern :: rest =>
     if getPatternByName pattern |>.isSome then
       parseArgs rest { config with pattern := pattern }
     else do
       IO.println s!"Error: Unknown pattern '{pattern}'"
       printHelp
       pure none
+--   | "--rand-pattern" :: rest => parseArgs rest { config with pattern := randPattern }
   | "--delay" :: delayStr :: rest =>
     match delayStr.toNat? with
     | some delay => parseArgs rest { config with delay := UInt32.ofNat delay }
@@ -140,6 +161,12 @@ partial def parseArgs (args : List String) (config : Config) : IO (Option Config
       pure none
   | "--on" :: char :: rest => parseArgs rest { config with onChar := char }
   | "--off" :: char :: rest => parseArgs rest { config with offChar := char }
+  | "--rand-on" :: rest => parseArgs rest { config with onChar := randOn.toString }
+  | "--rand-off" :: rest => parseArgs rest { config with offChar := randOff.toString }
+  | "--rand-both" :: rest => parseArgs rest { config with
+      onChar := randOn.toString
+      offChar := randOff.toString
+   }
   | unknown :: _ => do
     IO.println s!"Error: Unknown option '{unknown}'"
     printHelp

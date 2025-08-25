@@ -1,9 +1,11 @@
+def Pattern := List (Int × Int)
+
 def shift (delta : Int × Int)
-          (pat : List (Int × Int))
-          : List (Int × Int) :=
+          (pat : Pattern)
+          : Pattern :=
   pat.map (λ (x, y) => (x + delta.fst, y + delta.snd))
 
-def glider : List (Int × Int) :=
+def glider : Pattern :=
   [ (0, 1)
   , (1, 2)
   , (2, 0)
@@ -11,43 +13,43 @@ def glider : List (Int × Int) :=
   , (2, 2)
   ]
 
-def blinker : List (Int × Int) :=
+def blinker : Pattern :=
   [ (1, 0)
   , (1, 1)
   , (1, 2)
   ]
 
-def toad : List (Int × Int) :=
+def toad : Pattern :=
   [ (1, 1), (2, 1), (3, 1)
   , (0, 2), (1, 2), (2, 2)
   ]
 
-def beacon : List (Int × Int) :=
+def beacon : Pattern :=
   [ (0, 0), (1, 0)
   , (0, 1), (1, 1)
   , (2, 2), (3, 2)
   , (2, 3), (3, 3)
   ]
 
-def diehard : List (Int × Int) :=
+def diehard : Pattern :=
   [ (6, 0)
   , (0, 1), (1, 1)
   , (1, 2), (5, 2), (6, 2), (7, 2)
   ]
 
-def acorn : List (Int × Int) := shift (8, 8)
+def acorn : Pattern := shift (8, 8)
   [ (1, 0)
   , (3, 1)
   , (0, 2), (1, 2), (4, 2), (5, 2), (6, 2)
   ]
 
-def rPentomino : List (Int × Int) := shift (10, 10)
+def rPentomino : Pattern := shift (10, 10)
   [ (1, 0), (2, 0)
   , (0, 1), (1, 1)
   , (1, 2)
   ]
 
-def pulsar : List (Int × Int) :=
+def pulsar : Pattern :=
   [ (2,0), (3,0), (4,0), (8,0), (9,0), (10,0)
   , (0,2), (5,2), (7,2), (12,2)
   , (0,3), (5,3), (7,3), (12,3)
@@ -60,7 +62,7 @@ def pulsar : List (Int × Int) :=
   , (2,12), (3,12), (4,12), (8,12), (9,12), (10,12)
   ]
 
-def gosperGliderGun : List (Int × Int) := shift (5, 5)
+def gosperGliderGun : Pattern := shift (5, 5)
   [ (1,5), (1,6), (2,5), (2,6)
   , (11,5), (11,6), (11,7)
   , (12,4), (12,8)
@@ -78,12 +80,12 @@ def gosperGliderGun : List (Int × Int) := shift (5, 5)
   , (36,3), (36,4)
   ]
 
-def pentadecathlonSeed : List (Int × Int) := shift (10, 10)
+def pentadecathlonSeed : Pattern := shift (10, 10)
   [ (0, 0), (1, 0), (2, 0), (3, 0), (4, 0)
   , (5, 0), (6, 0), (7, 0), (8, 0), (9, 0)
   ]
 
-def queenBeeShuttle : List (Int × Int) := shift (10, 10)
+def queenBeeShuttle : Pattern := shift (10, 10)
   [ (9, 0), (10, 0)
   , (9, 1), (11, 1)
   , (4, 2), (5, 2), (12, 2), (20, 2), (21, 2)
@@ -91,4 +93,18 @@ def queenBeeShuttle : List (Int × Int) := shift (10, 10)
   , (0, 4), (1, 4), (4, 4), (5, 4), (12, 4)
   , (9, 5), (11, 5)
   , (9, 6), (10, 6)
+  ]
+
+def allPatterns : List Pattern :=
+  [ glider
+  , blinker
+  , toad
+  , beacon
+  , diehard
+  , acorn
+  , rPentomino
+  , pulsar
+  , gosperGliderGun
+  , pentadecathlonSeed
+  , queenBeeShuttle
   ]
