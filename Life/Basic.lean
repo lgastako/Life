@@ -210,5 +210,6 @@ def main (args : List String) := do
     let board : Board := boardFromConfig config
     go config.delay height width board config.onChar config.offChar
   where
-    -- subtractMargin := λ (a b : Nat × Nat) => (a.fst - b.fst, a.snd - b.snd)
-    subtractMargin := λ (_a b : Nat × Nat) => b
+    subtractMargin :=
+      -- λ (a b : Nat × Nat) => (a.fst - b.fst, a.snd - b.snd)
+      λ (_a b : Nat × Nat) => b
